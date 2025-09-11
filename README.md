@@ -27,8 +27,11 @@ Dari request itu, yang dilakukan aplikasi tersebut hanyalah mengecek cookienya, 
     </body>
 </html> 
 ```
+
 Jika korban mengunjungi website ini, maka dia akan mentrigger http request ke website dan browser akan otomatis menginclude session cookienya, sehingga emailnya langsung terganti. [source](https://portswigger.net/web-security/csrf)
+
 5. Yang pertama saya lakukan adalah membuat form terlebih dahulu dan memahami apa yang dilakukan form tersebut, kemudian saya membuat 4 func dari masing" return data json dan xml, kemudian mengatur route untuk tiap endpoint serta membuat tampilan htmlnya.
+
 6. tidak ada
 ss-postman : 
 1. ![json](assets/json.jpg)
