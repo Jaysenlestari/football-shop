@@ -36,8 +36,12 @@ class Product(models.Model):
     is_featured = models.BooleanField(default=False)
     stock = models.IntegerField()
     rating = models.FloatField(default=0.0)
-    clothes_size = models.CharField(max_length=5, choices=CLOTHES_SIZES)
-    shoe_size = models.CharField(max_length=5, choices=SHOE_SIZES)
+    clothes_size = models.CharField(max_length=5, choices=CLOTHES_SIZES, blank=True, null=True)
+    shoe_size = models.CharField(max_length=5, choices=SHOE_SIZES, blank=True, null=True)
     
     def __str__(self):
         return self.name
+    
+    @property
+    def is_products_reccomended(self):
+        return self.rating >= 4.5

@@ -1,8 +1,44 @@
-<!DOCTYPE html>
-<html>
-    <h1>Football Shop</h1>
-    <h2>Welcome to VARwoiii Shop</h2>
-    <h4>This shop was own by : {{ name }}</h4>
-    <h4>Student id : {{ student_id }} </h4>
-    <h4>Class : {{ class_name }}</h4>
-<html>
+{% extends 'base.html' %}
+{% block content %}
+<h1>Football Shop</h1>
+
+<h5>NPM: {{ npm }}</h5>
+<h5>Name: {{ name }}</h5>
+<h5>Class: {{ class }}</h5>
+
+<a href={% url 'main:create_products' %}>
+    <button> + Add New Product </button>
+</a>
+
+<hr>
+
+{% if not products_list %}
+    <p>Belum ada product yang tersedia.</p>
+{% else %}
+
+{% for product in products_list %}
+<div>
+  {% if product.thumbnail %}
+    <img src="{{ product.thumbnail }}" alt="{{ product.name }}" width="120" height="150">
+  {% endif %}
+
+  <b>{{ product.name }}</b> | 
+  Rp {{ product.price }} | 
+  Brand: {{ product.brand }}
+  
+  {% if product.is_featured %}
+    | <span style="color: green;">Featured</span>
+  {% endif %}
+  {% if product.is_products_reccomended %}
+    | <span style="color: red;">Recommended</span>
+  {% endif %}
+
+  | <a href="{% url 'main:show_products' product.id %}">
+      <button>Detail</button>
+    </a>
+</div>
+<hr>
+{% endfor %}
+
+{% endif %}
+{% endblock content %}
