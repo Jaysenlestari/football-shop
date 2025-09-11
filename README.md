@@ -33,6 +33,7 @@ Jika korban mengunjungi website ini, maka dia akan mentrigger http request ke we
 5. Yang pertama saya lakukan adalah membuat form terlebih dahulu dan memahami apa yang dilakukan form tersebut, kemudian saya membuat 4 func dari masing" return data json dan xml, kemudian mengatur route untuk tiap endpoint serta membuat tampilan htmlnya.
 
 6. tidak ada
+
 ss-postman : 
 1. ![json](assets/json.jpg)
 2. ![json_id](assets/json_id.jpg)
