@@ -34,4 +34,10 @@
 <h3>Description</h3>
 <p>{{ product.description }}</p>
 
+{% if product.user %}
+    <p>Employee: {{ product.user.username }}</p>
+{% else %}
+    <p>Employee: Anonymous</p>
+{% endif %}
+
 {% endblock content %}

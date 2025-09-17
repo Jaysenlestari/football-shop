@@ -7,13 +7,23 @@
 <h5>Class: {{ class }}</h5>
 
 <a href={% url 'main:create_products' %}>
-    <button> + Add New Product </button>
+  <button> + Add New Product </button>
 </a>
+<a href={% url 'main:logout' %}>
+  <button> Logout </button>
+</a>
+<h5>Last Login: {{ request.COOKIES.last_login }}</h5>
 
 <hr>
+<a href="?filter=all">
+  <button>All Products</button>
+</a>
+<a href="?filter=me">
+  <button>My Products</button>
+</a>
 
 {% if not products_list %}
-    <p>Belum ada product yang tersedia.</p>
+  <p>Belum ada product yang tersedia.</p>
 {% else %}
 
 {% for product in products_list %}
