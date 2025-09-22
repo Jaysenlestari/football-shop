@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from main.forms import ProductForm
+from main.forms import ProductForm, EmployeeForm
 from main.models import Product
 from django.http import HttpResponse
 from django.core import serializers
@@ -24,6 +24,16 @@ def create_products(request):
     
     context = {'form': form}
     return render(request, 'create_products.html', context)
+
+def create_employee(request):
+    form = EmployeeForm(request.POST or None)
+    
+    if form.is_valid() and request.method == "POST":
+        form.save()
+        return redirect('main:show_main')
+    
+    context = {'form':form}
+    return render(request,'add_employee.html',context)
 
 def show_products(request, id):
     product = get_object_or_404(Product, pk=id)

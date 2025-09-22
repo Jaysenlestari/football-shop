@@ -45,3 +45,8 @@ class Product(models.Model):
     @property
     def is_products_reccomended(self):
         return self.rating >= 4.5
+    
+class Employee(models.Model):
+    name = models.CharField(max_length=255)
+    age = models.IntegerField()
+    persona = models.TextField()
