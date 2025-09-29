@@ -1,0 +1,60 @@
+/* === FORM (dark) === */
+.form-style form input,
+.form-style form textarea,
+.form-style form select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #334155;         /* slate-700 */
+  border-radius: 0.5rem;
+  background: #0b1220;               /* slate-950-ish */
+  color: #e5e7eb;                    /* slate-200 */
+}
+
+/* Placeholder kontras */
+.form-style form input::placeholder,
+.form-style form textarea::placeholder {
+  color: #94a3b8;                    /* slate-400 */
+}
+
+/* Focus ring */
+.form-style form input:focus,
+.form-style form textarea:focus,
+.form-style form select:focus {
+  outline: none;
+  border-color: #0ea5e9;             /* sky-500 */
+  box-shadow: 0 0 0 3px rgba(14,165,233,0.15);
+}
+
+/* Checkbox (dark) */
+.form-style input[type="checkbox"] {
+  width: 1.25rem; height: 1.25rem;
+  border: 2px solid #334155; border-radius: 0.375rem;
+  background-color: #0b1220;
+  cursor: pointer; position: relative;
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+}
+.form-style input[type="checkbox"]:checked {
+  background-color: #0ea5e9; border-color: #0ea5e9;
+}
+.form-style input[type="checkbox"]:checked::after {
+  content: '✓'; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); color: #0b1220; font-weight: 800; font-size: 0.875rem;
+}
+.form-style input[type="checkbox"]:focus {
+  outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+}
+
+/* === Cards & Buttons (dark) === */
+.card-hover { transition: box-shadow .25s ease, transform .25s ease; }
+.card-hover:hover { box-shadow: 0 12px 32px rgba(2,6,23,0.45); transform: translateY(-2px); }
+
+.btn { display:inline-flex; align-items:center; justify-content:center; padding:.65rem 1rem; border-radius:.5rem; font-weight:600; }
+.btn-primary { background:#0ea5e9; color:#0b1220; }
+.btn-primary:hover { background:#38bdf8; }
+.btn-outline { border:1px solid #334155; color:#e2e8f0; }
+.btn-outline:hover { background:#0f172a; }
+
+/* Label/form help text biar kebaca */
+.form-style label { color:#e5e7eb; }
+.form-style .helptext { color:#94a3b8; }
+.form-style .errorlist, .form-style .error { color:#fca5a5; }

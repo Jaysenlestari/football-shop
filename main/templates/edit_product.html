@@ -1,0 +1,53 @@
+{% load static %}
+<article class="bg-slate-900 rounded-lg border border-slate-800 card-hover overflow-hidden">
+  <div class="aspect-[16/9] relative overflow-hidden">
+    {% if product.thumbnail %}
+      <img src="{{ product.thumbnail }}" alt="{{ product.name }} thumbnail" class="w-full h-full object-cover">
+    {% else %}
+      <div class="w-full h-full bg-slate-800"></div>
+    {% endif %}
+    <div class="absolute top-3 left-3">
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-sky-500 text-slate-950">
+        {{ product.get_category_display }}
+      </span>
+    </div>
+    <div class="absolute top-3 right-3 flex space-x-2">
+      {% if product.is_featured %}
+        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-300 text-slate-950">Featured</span>
+      {% endif %}
+      {% if product.is_products_reccomended %}
+        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-fuchsia-300 text-slate-950">Recommended</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="p-5">
+    <h3 class="text-lg font-semibold text-white mb-2 line-clamp-2 leading-tight">
+      <a href="{% url 'main:show_products' product.id %}" class="hover:text-sky-300 transition-colors">
+        {{ product.name }}
+      </a>
+    </h3>
+
+    <p class="text-sm text-slate-400 mb-3">
+      Brand: <span class="text-slate-200 font-medium">{{ product.brand }}</span> ·
+      Stock: <span class="text-slate-200 font-medium">{{ product.stock }}</span> ·
+      <span class="font-semibold text-white">Rp {{ product.price }}</span>
+    </p>
+
+    <p class="text-slate-300 text-sm leading-relaxed line-clamp-3 mb-4">
+      {{ product.description|truncatewords:24 }}
+    </p>
+
+    <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+      <a href="{% url 'main:show_products' product.id %}" class="text-sky-400 hover:text-sky-300 font-medium text-sm transition-colors">
+        Detail →
+      </a>
+      {% if user.is_authenticated and product.user == user %}
+        <div class="flex space-x-3">
+          <a href="{% url 'main:edit_product' product.id %}" class="text-slate-300 hover:text-white text-sm transition-colors">Edit</a>
+          <a href="{% url 'main:delete_product' product.id %}" class="text-rose-400 hover:text-rose-300 text-sm transition-colors">Delete</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</article>
