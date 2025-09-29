@@ -113,7 +113,8 @@ def edit_product(request, id):
         form.save()
         return redirect('main:show_main')
     context = {
-        'form': form
+        'form': form,
+        'product':product
     }
     return render(request, "edit_product.html", context)
 
