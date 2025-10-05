@@ -1,10 +1,10 @@
 from django.urls import path
-from main.views import show_main, create_products, show_products, show_xml, show_json, show_xml_by_id, show_json_by_id, create_employee
-
+from main.views import *
 app_name = 'main'
 
 urlpatterns = [
     path('', show_main, name='show_main'),
+    path('employee/<str:name>/',demo, name='demo'),
     path('create-products/', create_products, name='create_products'),
     path('products/<str:id>/', show_products, name='show_products'),
     path('xml/', show_xml, name='show_xml'),

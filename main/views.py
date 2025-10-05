@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from main.forms import ProductForm, EmployeeForm
-from main.models import Product
-from django.http import HttpResponse
+from main.models import Product, Employee
+from django.http import HttpResponse, HttpResponseRedirect
 from django.core import serializers
 
 # Create your views here.
@@ -66,4 +67,14 @@ def show_json_by_id(request, id):
         return HttpResponse(json_data, content_type='application/json')
     except Product.DoesNotExist:
         return HttpResponse(status=404)
+    
+def demo(request, name):
+    try : 
+        about = Employee.objects.filter(name=name)
+        print(about)
+        return render(request, "Hello")
+    except Exception as e:
+        print(e)
+        response = HttpResponseRedirect(reverse('main:show_main'))
+        return response
     
