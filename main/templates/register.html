@@ -75,4 +75,42 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("form");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    const csrf = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+    try {
+      const res = await fetch("", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrf,
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.status === "success") {
+        showToast("✅ Registration Successful", data.message, "success");
+        setTimeout(() => window.location.href = data.redirect, 1000);
+      } else {
+        const errors = Object.entries(data.errors || {})
+          .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+          .join("\n");
+        showToast("❌ Registration Failed", errors, "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("⚠️ Error", "Something went wrong.", "error");
+    }
+  });
+});
+</script>
+
 {% endblock content %}

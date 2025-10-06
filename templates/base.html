@@ -6,11 +6,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% block meta %}{% endblock meta %}
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{% static 'css/global.css' %}"/>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/global.css' %}" />
   </head>
+
   <body class="bg-slate-950 text-slate-100">
+    <!-- CSRF Token Global -->
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
     <main class="pt-16">
       {% block content %}{% endblock content %}
     </main>
+
+    {% include 'modal.html' %}
+    {% include 'toast.html' %}
+
+    <!-- Global Logout + CSRF Helper -->
+    <script>
+      async function logoutUser() {
+        try {
+          const csrfToken =
+            document.getElementById("csrf-token")?.value ||
+            getCookie("csrftoken");
+
+          const res = await fetch("{% url 'main:logout' %}", {
+            method: "POST",
+            headers: {
+              "X-Requested-With": "XMLHttpRequest",
+              "X-CSRFToken": csrfToken,
+            },
+          });
+
+          const data = await res.json();
+
+          if (data.status === "success") {
+            showToast("✅ Logged out", data.message || "Logout successful!", "success");
+            setTimeout(() => {
+              window.location.href = data.redirect_url || "{% url 'main:login' %}";
+            }, 800);
+          } else {
+            showToast("Error", data.message || "Failed to logout.", "error");
+          }
+        } catch (err) {
+          console.error("Logout error:", err);
+          showToast("Error", "Server error while logging out", "error");
+        }
+      }
+
+      // Utility untuk ambil CSRF token dari cookie
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+          const cookies = document.cookie.split(";");
+          for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + "=")) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+    </script>
   </body>
 </html>

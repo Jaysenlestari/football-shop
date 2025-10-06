@@ -10,114 +10,154 @@
   <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <div class="mb-6">
-      <a href="{% url 'main:show_main' %}" class="text-slate-300 hover:text-white font-medium transition-colors">
-        ← Back to Products
-      </a>
+      <a href="{% url 'main:show_main' %}" class="text-slate-300 hover:text-white font-medium transition-colors">← Back to Products</a>
     </div>
 
-    <article class="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
-    <div class="p-6 sm:p-8">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <!-- STATES -->
+    <div id="p-loading" class="bg-slate-900 rounded-lg border border-slate-800 p-10 text-center">
+      <svg class="animate-spin h-7 w-7 text-sky-400 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <p class="text-slate-300 mt-3">Loading product...</p>
+    </div>
 
-        <!-- KIRI: FOTO (diperkecil) -->
-        <div class="lg:col-span-5">
-          {% if product.thumbnail %}
-          <div class="w-full bg-slate-800 rounded-lg overflow-hidden">
-            <div class="w-full mx-auto aspect-[4/5] max-h-96 lg:max-h-[520px]">
-              <img
-                src="{{ product.thumbnail }}"
-                alt="{{ product.name }} thumbnail"
-                class="w-full h-full object-contain p-4 block"
-                loading="lazy">
-            </div>
-          </div>
-          {% else %}
-          <div class="w-full bg-slate-800 rounded-lg aspect-[4/5] grid place-items-center text-slate-400">
-            No image
-          </div>
-          {% endif %}
-        </div>
+    <div id="p-error" class="hidden bg-rose-950/40 rounded-lg border border-rose-800 p-10 text-center">
+      <div class="text-rose-400 text-5xl mb-2">⚠️</div>
+      <h3 class="text-white font-semibold mb-1">Failed to load product</h3>
+      <p class="text-slate-300 text-sm mb-4">Please try again.</p>
+      <button id="p-retry" class="px-4 py-2 text-sm font-medium rounded-md bg-rose-600 text-white hover:bg-rose-500">Retry</button>
+    </div>
+    <!-- /STATES -->
 
-        <!-- KANAN: DETAIL + DESKRIPSI -->
-        <div class="lg:col-span-7">
-          <!-- Nama -->
-          <h1 class="text-3xl sm:text-4xl font-bold text-white leading-tight">
-            {{ product.name }}
-          </h1>
+    <article id="p-article" class="hidden bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
+      <div class="p-6 sm:p-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          <!-- Badge tepat di bawah nama biar nggak kosong -->
-          <div class="flex flex-wrap items-center gap-2 mt-3 mb-5">
-            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-sky-500 text-slate-950">
-              {{ product.get_category_display }}
-            </span>
-            {% if product.is_featured %}
-            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-amber-300 text-slate-950">Featured</span>
-            {% endif %}
-            {% if product.is_products_reccomended %}
-            <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-fuchsia-300 text-slate-950">Recommended</span>
-            {% endif %}
-          </div>
-
-          <!-- Harga -->
-          <div class="text-2xl font-semibold text-sky-400 mb-4">
-            Rp {{ product.price }}
-          </div>
-
-          <!-- Meta -->
-          <div class="space-y-3 text-sm mb-6">
-            <div class="flex flex-wrap gap-x-6 gap-y-2 text-slate-400">
-              <span>Brand: <b class="text-slate-200">{{ product.brand }}</b></span>
-              <span>Stock: <b class="text-slate-200">{{ product.stock }}</b></span>
-              <span>Rating: <b class="text-slate-200">{{ product.rating|floatformat:1 }}</b></span>
-            </div>
-            <div class="flex flex-wrap gap-x-6 gap-y-2 text-slate-400">
-              {% if product.clothes_size %}
-                <span>Size: <b class="text-slate-200">{{ product.clothes_size }}</b></span>
-              {% endif %}
-              {% if product.shoe_size %}
-                <span>Shoe Size: <b class="text-slate-200">{{ product.shoe_size }}</b></span>
-              {% endif %}
+          <!-- LEFT: IMAGE -->
+          <div class="lg:col-span-5">
+            <div class="w-full bg-slate-800 rounded-lg overflow-hidden">
+              <div class="w-full mx-auto aspect-[4/5] max-h-96 lg:max-h-[520px]">
+                <img id="p-thumb" src="" alt="" class="w-full h-full object-contain p-4 block" loading="lazy" style="display:none">
+                <div id="p-thumb-fallback" class="w-full h-full grid place-items-center text-slate-400">No image</div>
+              </div>
             </div>
           </div>
 
-          <!-- Deskripsi (sekarang di KANAN, di bawah harga/meta) -->
-          <div class="prose prose-invert prose-slate max-w-none">
-            <h2 class="text-xl font-semibold text-white mb-2">Description</h2>
-            <div class="text-slate-200 leading-relaxed whitespace-pre-line text-base sm:text-lg">
-              {{ product.description }}
+          <!-- RIGHT: DETAILS -->
+          <div class="lg:col-span-7">
+            <h1 id="p-title" class="text-3xl sm:text-4xl font-bold text-white leading-tight">—</h1>
+
+            <div id="p-badges" class="flex flex-wrap items-center gap-2 mt-3 mb-5"></div>
+
+            <div id="p-price" class="text-2xl font-semibold text-sky-400 mb-4">Rp 0</div>
+
+            <div class="space-y-3 text-sm mb-6">
+              <div class="flex flex-wrap gap-x-6 gap-y-2 text-slate-400">
+                <span>Brand: <b id="p-brand" class="text-slate-200">—</b></span>
+                <span>Stock: <b id="p-stock" class="text-slate-200">0</b></span>
+                <span>Rating: <b id="p-rating" class="text-slate-200">—</b></span>
+              </div>
+              <div class="flex flex-wrap gap-x-6 gap-y-2 text-slate-400">
+                <span id="p-size-clothes" style="display:none">Size: <b class="text-slate-200"></b></span>
+                <span id="p-size-shoe" style="display:none">Shoe Size: <b class="text-slate-200"></b></span>
+              </div>
+            </div>
+
+            <div class="prose prose-invert prose-slate max-w-none">
+              <h2 class="text-xl font-semibold text-white mb-2">Description</h2>
+              <div id="p-desc" class="text-slate-200 leading-relaxed whitespace-pre-line text-base sm:text-lg"></div>
             </div>
           </div>
-
-          {% if user.is_authenticated and product.user == user %}
-          <div class="mt-8">
-            <a href="{% url 'main:edit_product' product.pk %}" class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium border border-slate-700 text-slate-200 hover:bg-slate-800 transition">
-              Edit
-            </a>
-            <a href="{% url 'main:delete_product' product.pk %}" class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium border border-slate-700 text-slate-200 hover:bg-slate-800 transition">
-              Delete
-            </a>
-          </div>
-          {% endif %}
         </div>
       </div>
-    </div>
 
-    <!-- Footer pemilik produk -->
-    <div class="border-t border-slate-800 p-6 sm:p-8 bg-slate-950/50">
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="font-medium text-white">
-            {% if product.user %}
-              <p>Employee: {{ product.user.username }}</p>
-            {% else %}
-              <p>Employee: Anonymous</p>
-            {% endif %}
-          </div>
-          <p class="text-sm text-slate-400">Product Owner</p>
+      <!-- FOOTER OWNER -->
+      <div class="border-t border-slate-800 p-6 sm:p-8 bg-slate-950/50">
+        <div class="font-medium text-white">
+          <p id="p-owner">Employee: —</p>
         </div>
+        <p class="text-sm text-slate-400">Product Owner</p>
       </div>
-    </div>
-  </article>
+    </article>
   </div>
 </div>
+
+<script>
+const PRODUCT_JSON_ENDPOINT = "{% url 'main:show_json_by_id' product.id %}";
+const CURRENT_USER_ID       = "{{ user.id|default_if_none:'' }}";
+
+const elLoading = document.getElementById('p-loading');
+const elError   = document.getElementById('p-error');
+const elRetry   = document.getElementById('p-retry');
+const elArticle = document.getElementById('p-article');
+
+const elThumb   = document.getElementById('p-thumb');
+const elThumbFB = document.getElementById('p-thumb-fallback');
+const elTitle   = document.getElementById('p-title');
+const elBadges  = document.getElementById('p-badges');
+const elPrice   = document.getElementById('p-price');
+const elBrand   = document.getElementById('p-brand');
+const elStock   = document.getElementById('p-stock');
+const elRating  = document.getElementById('p-rating');
+const elSizeCl  = document.getElementById('p-size-clothes');
+const elSizeSh  = document.getElementById('p-size-shoe');
+const elDesc    = document.getElementById('p-desc');
+const elOwner   = document.getElementById('p-owner');
+
+function showState({loading=false, error=false, article=false}) {
+  elLoading.classList.toggle('hidden', !loading);
+  elError.classList.toggle('hidden', !error);
+  elArticle.classList.toggle('hidden', !article);
+}
+function fmtPrice(n){const v=Number(n);return isNaN(v)?`Rp ${n}`:`Rp ${v.toLocaleString('id-ID')}`;}
+function renderBadges(p){
+  const cats = p.get_category_display || p.category_display || p.category || 'Product';
+  const isF  = !!p.is_featured;
+  const isR  = !!p.is_products_reccomended;
+  elBadges.innerHTML =
+    `<span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-sky-500 text-slate-950">${cats}</span>` +
+    (isF?`<span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-amber-300 text-slate-950">Featured</span>`:'') +
+    (isR?`<span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-fuchsia-300 text-slate-950">Recommended</span>`:'');
+}
+function populate(p){
+  elTitle.textContent = p.name ?? 'Unnamed Product';
+  renderBadges(p);
+  elPrice.textContent = fmtPrice(p.price);
+  elBrand.textContent = p.brand ?? '-';
+  elStock.textContent = p.stock ?? 0;
+  elRating.textContent= (p.rating!=null)?Number(p.rating).toFixed(1):'—';
+
+  if (elSizeCl){ const b=elSizeCl.querySelector('b'); if (p.clothes_size){ elSizeCl.style.display=''; b.textContent=p.clothes_size; } else elSizeCl.style.display='none'; }
+  if (elSizeSh){ const b=elSizeSh.querySelector('b'); if (p.shoe_size){ elSizeSh.style.display=''; b.textContent=p.shoe_size; } else elSizeSh.style.display='none'; }
+
+  elDesc.innerHTML = p.description ?? '';
+
+  if (p.thumbnail){ elThumb.style.display=''; elThumb.src=p.thumbnail; elThumb.alt=p.name||''; elThumbFB.style.display='none'; }
+  else { elThumb.style.display='none'; elThumbFB.style.display=''; }
+
+  elOwner.textContent = p.user_username ? `Employee: ${p.user_username}` : 'Employee: Anonymous';
+
+  const uid = CURRENT_USER_ID ? Number(CURRENT_USER_ID) : null;
+  const ownerId = Number(p.user_id);
+}
+
+async function loadProduct(){
+  try{
+    showState({loading:true});
+    const res = await fetch(PRODUCT_JSON_ENDPOINT,{headers:{'Accept':'application/json'}});
+    if(!res.ok) throw new Error();
+    const data = await res.json();
+    const p = Array.isArray(data)?data[0]:(data.item??data);
+    if(!p||!p.id) throw new Error();
+    populate(p);
+    showState({article:true});
+  }catch(e){
+    console.error(e);
+    showState({error:true});
+  }
+}
+if (elRetry) elRetry.addEventListener('click', loadProduct);
+loadProduct();
+</script>
 {% endblock content %}

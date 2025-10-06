@@ -7,62 +7,371 @@
 
 {% block content %}
 {% include 'navbar.html' %}
+
 <div class="w-full min-h-screen">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="products-root">
 
     <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white mb-2">Explore Football Gear</h1>
-      <p class="text-slate-400">Shop jerseys, boots, and accessories.</p>
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-white mb-2">Explore Football Gear</h1>
+        <p class="text-slate-400">Shop jerseys, boots, and accessories.</p>
+      </div>
     </div>
 
+    <!-- Filter -->
     <div class="w-full mb-8 bg-slate-900 rounded-lg border border-slate-800 p-4">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="inline-flex flex-nowrap overflow-hidden rounded-md border border-slate-700 divide-x divide-slate-700 whitespace-nowrap overflow-x-auto">
-          <a href="?"
-            class="px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500
-                    {% if request.GET.filter == 'all' or not request.GET.filter %}
-                      bg-sky-500 text-slate-950
-                    {% else %}
-                      bg-slate-800 text-slate-200 hover:bg-slate-700
-                    {% endif %}">
-            All products
-          </a>
-          <a href="?filter=my"
-            class="px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500
-                    {% if request.GET.filter == 'my' %}
-                      bg-sky-500 text-slate-950
-                    {% else %}
-                      bg-slate-800 text-slate-200 hover:bg-slate-700
-                    {% endif %}">
-            My products
-          </a>
+        <div class="flex items-center gap-3">
+          <div class="inline-flex rounded-md border border-slate-700 divide-x divide-slate-700 overflow-hidden">
+            <button id="btn-all"
+              class="px-4 py-2 text-sm font-medium bg-sky-500 text-slate-950 transition">
+              All products
+            </button>
+            <button id="btn-my"
+              class="px-4 py-2 text-sm font-medium bg-slate-800 text-slate-200 hover:bg-slate-700 transition">
+              My products
+            </button>
+          </div>
+          <button id="refresh-btn"
+            class="px-3 py-2 text-sm font-medium bg-slate-800 hover:bg-sky-500 hover:text-slate-950 text-slate-200 rounded-md border border-slate-700 transition-colors duration-150">
+            ⟳
+          </button>
         </div>
 
         {% if user.is_authenticated %}
-          <div class="text-sm text-slate-400">
-            Last login: {{ last_login }}
-          </div>
+        <div class="text-sm text-slate-400 whitespace-nowrap">Last login: {{ last_login }}</div>
         {% endif %}
       </div>
     </div>
 
 
+    <!-- State -->
+    <div id="loading" class="hidden text-center text-slate-300 py-8">Loading products…</div>
+    <div id="error" class="hidden text-center text-rose-400 py-8">Failed to load products.</div>
+    <div id="empty" class="hidden text-center text-slate-400 py-8">No products found.</div>
+
     <!-- Grid -->
-    {% if not products_list %}
-      <div class="bg-slate-900 rounded-lg border border-slate-800 p-12 text-center">
-        <h3 class="text-lg font-medium text-white mb-2">No products found</h3>
-        <p class="text-slate-400 mb-6">Be the first to add your football items.</p>
-        <a href="{% url 'main:create_products' %}" class="btn btn-primary">Create product</a>
-      </div>
-    {% else %}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for product in products_list %}
-          {% include 'card_product.html' with product=product %}
-        {% endfor %}
-      </div>
-    {% endif %}
+    <div id="grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
   </div>
 </div>
+
+<script>
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    for (let cookie of document.cookie.split(';')) {
+      cookie = cookie.trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function showToast(msg, isError=false) {
+  const toast = document.createElement("div");
+  toast.className = `
+    fixed bottom-6 right-6 px-5 py-3 rounded-lg text-white text-sm font-semibold shadow-lg transition-all
+    ${isError ? "bg-rose-600" : "bg-emerald-500"}
+  `;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+const PRODUCT_API_ENDPOINT = "{% url 'main:show_json' %}";
+const CURRENT_USER_ID = Number("{{ user.id|default_if_none:0 }}");
+
+const grid = document.getElementById("grid");
+const loading = document.getElementById("loading");
+const empty = document.getElementById("empty");
+const errorBox = document.getElementById("error");
+const btnAll = document.getElementById("btn-all");
+const btnMy = document.getElementById("btn-my");
+const refreshBtn = document.getElementById("refresh-btn");
+
+let allProducts = [];
+let activeFilter = "all";
+
+function showSections({loadingState=false, error=false, emptyState=false, gridState=false}) {
+  loading.classList.toggle("hidden", !loadingState);
+  errorBox.classList.toggle("hidden", !error);
+  empty.classList.toggle("hidden", !emptyState);
+  grid.classList.toggle("hidden", !gridState);
+}
+
+function buildCard(p) {
+  const safe = {
+    id: DOMPurify.sanitize(String(p.id)),
+    name: DOMPurify.sanitize(p.name),
+    brand: DOMPurify.sanitize(p.brand),
+    description: DOMPurify.sanitize(p.description ?? ""),
+    category: DOMPurify.sanitize(p.category ?? ""),
+    thumbnail: DOMPurify.sanitize(p.thumbnail ?? ""),
+  };
+
+  const isOwner = Number(p.user_id) === CURRENT_USER_ID;
+  const showLink = `/products/${safe.id}/`;
+  const card = document.createElement("article");
+  card.className = "group bg-slate-900/90 rounded-xl border border-slate-800 shadow hover:shadow-sky-900/20 transition overflow-hidden";
+  card.innerHTML = `
+    <div class="relative bg-slate-800 overflow-hidden mb-3 rounded-lg" style="height: 18rem;"> 
+      <img src="${safe.thumbnail}" alt="${safe.name}" class="w-full object-contain" style="margin-bottom: -5%; transform: translateY(-1%);"> 
+    </div>
+    <div class="p-5 space-y-2">
+      <h3 class="text-lg font-semibold text-white">
+        <a href="${showLink}" class="hover:text-sky-400 transition-colors">${safe.name}</a>
+      </h3>
+      <p class="text-slate-400 text-sm">${safe.brand} • ${safe.category}</p>
+      <p class="text-slate-300 text-sm line-clamp-2">${safe.description}</p>
+      <div class="flex justify-between items-center border-t border-slate-700 pt-3">
+        <span class="text-white font-semibold">Rp ${Number(p.price).toLocaleString("id-ID")}</span>
+        ${
+          isOwner
+            ? `
+              <div class="flex gap-3">
+                <button class="text-green-400 hover:text-green-300 text-sm font-medium" onclick="openEditModal('${safe.id}')">Edit</button>
+                <button class="text-rose-400 hover:text-rose-300 text-sm font-medium" onclick="openDeleteModal('${safe.id}', '${safe.name}')">Delete</button>
+              </div>
+            `
+            : ""
+        }
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+function renderProducts(list) {
+  grid.innerHTML = "";
+  list.forEach(p => grid.appendChild(buildCard(p)));
+}
+
+function applyFilter() {
+  const filtered =
+    activeFilter === "my"
+      ? allProducts.filter(p => Number(p.user_id) === CURRENT_USER_ID)
+      : allProducts;
+  if (filtered.length === 0) showSections({ emptyState: true });
+  else {
+    renderProducts(filtered);
+    showSections({ gridState: true });
+  }
+}
+
+async function fetchProducts() {
+  try {
+    showSections({ loadingState: true });
+    const res = await fetch(PRODUCT_API_ENDPOINT);
+    const data = await res.json();
+    allProducts = data;
+    applyFilter();
+  } catch (err) {
+    console.error("Fetch error:", err);
+    showSections({ error: true });
+  }
+}
+
+function openEditModal(id) {
+  const product = allProducts.find(p => String(p.id) === String(id));
+  if (!product) return;
+
+  const safe = {
+    name: DOMPurify.sanitize(product.name),
+    brand: DOMPurify.sanitize(product.brand),
+    description: DOMPurify.sanitize(product.description ?? ""),
+    thumbnail: DOMPurify.sanitize(product.thumbnail ?? ""),
+    category: DOMPurify.sanitize(product.category ?? "")
+  };
+
+  const modal = document.createElement("div");
+  modal.className =
+    "fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6";
+
+  modal.innerHTML = `
+    <div class="relative bg-slate-900 w-full max-w-5xl rounded-2xl border border-slate-800 shadow-2xl shadow-black/40 flex flex-col md:flex-row overflow-hidden">
+      <button id="closeModal" type="button"
+        class="absolute top-4 right-5 text-slate-400 hover:text-white text-3xl font-bold transition-all">&times;</button>
+
+      <!-- Left -->
+      <div class="md:w-[40%] w-full bg-slate-950 flex flex-col items-center justify-center p-6 border-b md:border-b-0 md:border-r border-slate-800">
+        ${
+          safe.thumbnail
+            ? `<img src="${safe.thumbnail}" alt="${safe.name}"
+                class="rounded-xl shadow-lg max-h-[22rem] w-auto object-contain border border-slate-800">`
+            : `<div class='text-slate-500 text-center'>No Image Available</div>`
+        }
+        <p class="mt-3 text-slate-400 text-sm">Product Preview</p>
+      </div>
+
+      <!-- Right -->
+      <div class="md:w-[60%] w-full flex flex-col justify-between max-h-[80vh]">
+        <div class="p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
+          <h2 class="text-2xl font-bold text-white mb-6">Edit Product</h2>
+
+          <form id="editForm" class="space-y-5">
+            <div>
+              <label class="text-sm font-medium text-slate-400 mb-1 block">Name</label>
+              <input name="name" value="${safe.name}" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-md text-white">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium text-slate-400 mb-1 block">Price</label>
+                <input name="price" type="number" value="${product.price}" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-md text-white">
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-400 mb-1 block">Stock</label>
+                <input name="stock" type="number" value="${product.stock ?? 0}" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-md text-white">
+              </div>
+            </div>
+
+            <div>
+              <label class="text-sm font-medium text-slate-400 mb-1 block">Brand</label>
+              <input name="brand" value="${safe.brand}" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-md text-white">
+            </div>
+
+            <div>
+              <label class="text-sm font-medium text-slate-400 mb-1 block">Description</label>
+              <textarea name="description" rows="3" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-md text-white">${safe.description}</textarea>
+            </div>
+
+            <div>
+              <label class="text-sm font-medium text-slate-400 mb-1 block">Thumbnail URL</label>
+              <input name="thumbnail" value="${safe.thumbnail}" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-md text-white">
+            </div>
+
+            <div>
+              <label class="text-sm font-medium text-slate-400 mb-1 block">Category</label>
+              <input name="category" value="${safe.category}" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-md text-white">
+            </div>
+
+            <div class="flex items-center gap-3 pt-1">
+              <input type="checkbox" name="is_featured" id="is_featured"
+                class="h-4 w-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                ${product.is_featured ? "checked" : ""}>
+              <label for="is_featured" class="text-slate-300 text-sm">Featured Product</label>
+            </div>
+
+          </form>
+        </div>
+
+        <div class="flex justify-end gap-3 p-4 border-t border-slate-800 bg-slate-900 sticky bottom-0">
+          <button id="cancelEdit" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 rounded-md font-semibold">Cancel</button>
+          <button id="saveEdit" class="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-slate-950 rounded-md font-semibold">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.querySelector("#closeModal").onclick = () => modal.remove();
+  modal.querySelector("#cancelEdit").onclick = () => modal.remove();
+
+  const form = modal.querySelector("#editForm");
+  const saveBtn = modal.querySelector("#saveEdit");
+  saveBtn.onclick = async e => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    if (!formData.has("is_featured")) formData.append("is_featured", "off");
+    try {
+      const res = await fetch(`/product/${id}/edit`, {
+        method: "POST",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        showToast("✅ Product updated!");
+        modal.remove();
+        fetchProducts();
+      } else {
+        console.error(data.errors);
+        showToast("Update failed", true);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Something went wrong", true);
+    }
+  };
+}
+
+function openDeleteModal(id, name) {
+  const safeName = DOMPurify.sanitize(name);
+  const modal = document.createElement("div");
+  modal.className =
+    "fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4";
+  modal.innerHTML = `
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md text-center text-slate-200 shadow-xl shadow-black/30">
+      <h3 class="text-lg font-bold text-white mb-3">Delete Product</h3>
+      <p class="text-slate-400 mb-6">
+        Are you sure you want to delete <span class="text-white font-semibold">${safeName}</span>?
+      </p>
+      <div class="flex justify-center gap-4">
+        <button id="cancelDel" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 rounded-md font-medium">Cancel</button>
+        <button id="confirmDel" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 rounded-md font-semibold text-white">Delete</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  modal.querySelector("#cancelDel").onclick = () => modal.remove();
+  modal.querySelector("#confirmDel").onclick = async () => {
+    try {
+      const res = await fetch(`/product/${id}/delete`, {
+        method: "POST",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        showToast("🗑️ Product deleted!");
+        modal.remove();
+        fetchProducts();
+      } else showToast("Delete failed", true);
+    } catch (err) {
+      console.error(err);
+      showToast("Something went wrong", true);
+    }
+  };
+}
+
+function updateFilterButtons() {
+  const active = ["bg-sky-500", "text-slate-950"];
+  const inactive = ["bg-slate-800", "text-slate-200", "hover:bg-slate-700"];
+
+  if (activeFilter === "all") {
+    btnAll.classList.add(...active);
+    btnAll.classList.remove(...inactive);
+    btnMy.classList.remove(...active);
+    btnMy.classList.add(...inactive);
+  } else {
+    btnMy.classList.add(...active);
+    btnMy.classList.remove(...inactive);
+    btnAll.classList.remove(...active);
+    btnAll.classList.add(...inactive);
+  }
+}
+
+btnAll.onclick = () => {
+  activeFilter = "all";
+  updateFilterButtons();
+  applyFilter();
+};
+
+btnMy.onclick = () => {
+  activeFilter = "my";
+  updateFilterButtons();
+  applyFilter();
+};
+
+refreshBtn.onclick = fetchProducts;
+document.addEventListener("DOMContentLoaded", () => {
+  fetchProducts();
+  updateFilterButtons();
+});
+</script>
 {% endblock content %}

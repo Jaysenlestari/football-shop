@@ -69,4 +69,42 @@
     </div>
   </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("form");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+    try {
+      const res = await fetch("{% url 'main:login' %}", {
+        method: "POST",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken,
+        },
+        credentials: "same-origin",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.status === "success") {
+        showToast("✅ Login Successful", data.message, "success");
+        setTimeout(() => {
+          window.location.href = data.redirect_url;
+        }, 1000);
+      } else {
+        const err = data.errors ? JSON.stringify(data.errors) : data.message;
+        showToast("Login Failed", err, "error");
+      }
+    } catch (err) {
+      console.error("AJAX Error:", err);
+      showToast("Error", "Cannot connect to server", "error");
+    }
+  });
+});
+</script>
+
 {% endblock content %}
